@@ -9,25 +9,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.LinkedHashMap;
+import java.util.stream.Stream;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-//@WebMvcTest(EmprestimoController.class)
-//@AutoConfigureMockMvc
 class EmprestimosApplicationTests {
     @Autowired
     private EmprestimosApplication controller;
-
-    @Autowired
-    private MockMvc mockMvc;
 
     @LocalServerPort
     private int port;
@@ -37,6 +33,15 @@ class EmprestimosApplicationTests {
 
     @Autowired
     private TestRestTemplate restTemplate;
+
+    private static Stream<Arguments> provideValuesToTest() {
+        return Stream.of(
+                Arguments.of(20000, 2.5, 10),
+                Arguments.of("", 2, 5),
+                Arguments.of(15000, 1, 12),
+                Arguments.of(180000, 0, "")
+        );
+    }
 
     @Test
     public void contextLoads() throws Exception {
@@ -60,11 +65,9 @@ class EmprestimosApplicationTests {
         return valor + valorIof + (valorAcum - valor);
     }
 
-    @Test
-    public void testSimpleFees() throws Exception {
-        double valor = 20000;
-        double taxa = 2.5;
-        int nroParcelas = 10;
+    @ParameterizedTest
+    @MethodSource("provideValuesToTest")
+    public void testSimpleFees(double valor, double taxa, int nroParcelas) throws Exception {
 
         String buildedUrl = "http://localhost:" + port + "/emprestimo/jurosSimples?valor=" + valor + "&parcelas=" + nroParcelas + "&taxa=" + taxa;
 
@@ -81,11 +84,9 @@ class EmprestimosApplicationTests {
         assertThat(receivedTotalShare).isEqualTo((totalShareExpected));
     }
 
-    @Test
-    public void testCompositeFees() throws Exception {
-        double valor = 20000;
-        double taxa = 2.5;
-        int nroParcelas = 10;
+    @ParameterizedTest
+    @MethodSource("provideValuesToTest")
+    public void testCompositeFees(double valor, double taxa, int nroParcelas) throws Exception {
 
         String buildedUrl = "http://localhost:" + port + "/emprestimo/jurosCompostos?valor=" + valor + "&parcelas=" + nroParcelas + "&taxa=" + taxa;
 
@@ -101,11 +102,4 @@ class EmprestimosApplicationTests {
         assertThat(totalValueExpected).isEqualTo((receivedTotalValue));
         assertThat(receivedTotalShare).isEqualTo((totalShareExpected));
     }
-
-    @Test
-    public void shouldReturnDefaultMessage() throws Exception {
-        this.mockMvc.perform(get("/")).andDo(print()).andExpect(status().isOk())
-                .andExpect(content().string(containsString("Hello, World")));
-    }
-
 }
